@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi:9.1.0-1782 as build
+FROM registry.access.redhat.com/ubi9/ubi:9.4-1181 as build
 ENV GRPC_VERSION=v1.49.2
 ENV OTEL_CPP_VERSION=v1.8.1
 ENV OTEL_CPP_CONTRIB_VERSION=webserver/v1.0.3
