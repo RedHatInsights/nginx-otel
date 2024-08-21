@@ -60,5 +60,5 @@ RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b $OTEL_CPP_C
     .. \
   && make -j2 \
   && make install
-FROM registry.access.redhat.com/ubi9/nginx-120:1-95
+FROM registry.access.redhat.com/ubi9/nginx-120:1-152.1723706890
 COPY --from=build /usr/share/nginx/modules/otel_ngx_module.so /opt/
