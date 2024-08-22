@@ -1,13 +1,19 @@
 FROM registry.access.redhat.com/ubi9/ubi:9.4-1181 as build
+# NOTE: this must be the same as the output of `nginx -V` from the ubi9/nginx image
+ENV NGINX_VERSION=1.24.0
+# NOTE: this must be the same as the target grpc version from otel-cpp-contrib
+# see @grpc_version at https://github.com/open-telemetry/opentelemetry-cpp-contrib/blob/main/instrumentation/nginx/test/instrumentation/lib/mix/tasks/dockerfiles.ex
 ENV GRPC_VERSION=v1.49.2
+# NOTE: this must be the same as the target cpp version from otel-cpp-contrib
+# see @otel_cpp_version at https://github.com/open-telemetry/opentelemetry-cpp-contrib/blob/main/instrumentation/nginx/test/instrumentation/lib/mix/tasks/dockerfiles.ex
 ENV OTEL_CPP_VERSION=v1.8.1
-ENV OTEL_CPP_CONTRIB_VERSION=webserver/v1.0.3
+# NOTE: this is the tag of a opentelemetry-cpp-contrib release, see https://github.com/open-telemetry/opentelemetry-cpp-contrib/releases
+ENV OTEL_CPP_CONTRIB_VERSION=webserver/v1.1.0
 RUN dnf install -y \
     cmake \
     curl-devel \
     gcc-c++ \
     git \
-    nginx \
     pcre-devel \
     zlib-devel
 RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b $GRPC_VERSION \
@@ -38,7 +44,6 @@ RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b $OTEL_CPP_V
   && cmake -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/install \
     -DCMAKE_PREFIX_PATH=/install \
-    -DWITH_ABSEIL=ON \
     -DWITH_OTLP=ON \
     -DWITH_OTLP_GRPC=ON \
     -DWITH_OTLP_HTTP=OFF \
@@ -55,10 +60,11 @@ RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b $OTEL_CPP_C
   && mkdir build \
   && cd build \
   && cmake -DCMAKE_BUILD_TYPE=Release \
+    -DNGINX_VERSION=$NGINX_VERSION \
     -DCMAKE_PREFIX_PATH=/install \
     -DCMAKE_INSTALL_PREFIX=/usr/share/nginx/modules \
     .. \
   && make -j2 \
   && make install
-FROM registry.access.redhat.com/ubi9/nginx-120:1-95
+FROM registry.access.redhat.com/ubi9/nginx-124:1-20
 COPY --from=build /usr/share/nginx/modules/otel_ngx_module.so /opt/
