@@ -340,6 +340,8 @@ spec:
         - "false"
     - name: sast-snyk-check
       params:
+      - name: image-digest
+        value: $(tasks.build-container.results.IMAGE_DIGEST)
       - name: SOURCE_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       runAfter:
