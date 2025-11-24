@@ -1,6 +1,6 @@
 FROM registry.access.redhat.com/ubi9/ubi:9.7-1763340522 as build
 # NOTE: this must be the same as the output of `nginx -V` from the ubi9/nginx image
-ENV NGINX_VERSION=1.24.0
+ARG NGINX_VERSION=1.24.0
 # NOTE: this must be the same as the target grpc version from otel-cpp-contrib
 # see @grpc_version at https://github.com/open-telemetry/opentelemetry-cpp-contrib/blob/main/instrumentation/nginx/test/instrumentation/lib/mix/tasks/dockerfiles.ex
 ENV GRPC_VERSION=v1.49.2
@@ -67,4 +67,22 @@ RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b $OTEL_CPP_C
   && make -j2 \
   && make install
 FROM registry.access.redhat.com/ubi9/nginx-124:9.7-1763396581
+
+ARG NGINX_VERSION=1.24.0
+
+# Required labels for Enterprise Contract
+LABEL name="nginx-otel"
+LABEL maintainer="Red Hat, Inc."
+LABEL version="ubi9"
+LABEL release="${NGINX_VERSION}"
+LABEL vendor="Red Hat, Inc."
+LABEL url="https://github.com/RedHatInsights/nginx-otel"
+LABEL com.redhat.component="nginx-otel"
+LABEL distribution-scope="public"
+LABEL io.k8s.description="NGINX with OpenTelemetry instrumentation based on UBI9."
+LABEL description="NGINX with OpenTelemetry instrumentation based on UBI9."
+
+#label for EULA
+LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
+
 COPY --from=build /usr/share/nginx/modules/otel_ngx_module.so /opt/
