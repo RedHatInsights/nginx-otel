@@ -66,7 +66,7 @@ RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b $OTEL_CPP_C
     .. \
   && make -j2 \
   && make install
-FROM registry.access.redhat.com/ubi9/nginx-124:9.7-1774456665
+FROM registry.access.redhat.com/ubi9/nginx-124:9.7-1775009178
 
 ARG NGINX_VERSION=1.24.0
 
