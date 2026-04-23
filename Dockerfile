@@ -85,4 +85,6 @@ LABEL description="NGINX with OpenTelemetry instrumentation based on UBI9."
 #label for EULA
 LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
 
+COPY LICENSE /licenses/LICENSE
+
 COPY --from=build /usr/share/nginx/modules/otel_ngx_module.so /opt/
