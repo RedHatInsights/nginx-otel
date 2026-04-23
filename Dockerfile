@@ -66,7 +66,7 @@ RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b $OTEL_CPP_C
     .. \
   && make -j2 \
   && make install
-FROM registry.access.redhat.com/ubi9/nginx-124:9.7-1776735087
+FROM registry.access.redhat.com/ubi9/nginx-124:9.7-1776919684
 
 ARG NGINX_VERSION=1.24.0
 
@@ -84,5 +84,7 @@ LABEL description="NGINX with OpenTelemetry instrumentation based on UBI9."
 
 #label for EULA
 LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
+
+COPY LICENSE /licenses/LICENSE
 
 COPY --from=build /usr/share/nginx/modules/otel_ngx_module.so /opt/
