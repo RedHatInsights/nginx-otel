@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi:1782121135 as build
+FROM registry.access.redhat.com/ubi9/ubi:1782277357 as build
 # NOTE: this must be the same as the output of `nginx -V` from the ubi9/nginx image
 ARG NGINX_VERSION=1.24.0
 # NOTE: this must be the same as the target grpc version from otel-cpp-contrib
