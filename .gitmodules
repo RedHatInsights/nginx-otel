@@ -1,0 +1,9 @@
+[submodule "vendor/grpc"]
+	path = vendor/grpc
+	url = https://github.com/grpc/grpc.git
+[submodule "vendor/opentelemetry-cpp"]
+	path = vendor/opentelemetry-cpp
+	url = https://github.com/open-telemetry/opentelemetry-cpp.git
+[submodule "vendor/opentelemetry-cpp-contrib"]
+	path = vendor/opentelemetry-cpp-contrib
+	url = https://github.com/open-telemetry/opentelemetry-cpp-contrib.git
