@@ -1,0 +1,20 @@
+contentOrigin:
+  repos:
+    # Repoids must match EC known_rpm_repositories (rpm_repos.ids_known).
+    # Short names like ubi-9-baseos-rpms are rejected by Conforma.
+    # https://github.com/release-engineering/rhtap-ec-policy/blob/main/data/known_rpm_repositories.yml
+    - repoid: ubi-9-for-$basearch-baseos-rpms
+      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/$basearch/baseos/os/
+      varsFromImage: registry.access.redhat.com/ubi9/ubi:1793179250
+    - repoid: ubi-9-for-$basearch-appstream-rpms
+      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/$basearch/appstream/os/
+      varsFromImage: registry.access.redhat.com/ubi9/ubi:1793179250
+packages:
+  - cmake
+  # cmake-data Requires vim-filesystem; hermetic dnf has no network to pull it.
+  - vim-filesystem
+  - curl-devel
+  - gcc-c++
+  - pcre-devel
+  - zlib-devel
+installWeakDeps: false

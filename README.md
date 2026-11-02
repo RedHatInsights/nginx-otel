@@ -1,21 +1,34 @@
-ubi-based nginx with otel
-=========================
+# nginx-otel
 
-This repository is for building a container image for nginx with otel instrumentation.
+UBI-based nginx with OpenTelemetry instrumentation for SWATCH.
 
-After building, follow [opentelemetry-cpp-contrib nginx README](https://github.com/open-telemetry/opentelemetry-cpp-contrib/blob/main/instrumentation/nginx/README.md#usage)
+After building, follow the [opentelemetry-cpp-contrib nginx README](https://github.com/open-telemetry/opentelemetry-cpp-contrib/blob/main/instrumentation/nginx/README.md#usage).
 
-The built module is present in /opt, so the line for loading the module should
-look like:
+The built module is installed at `/opt/otel_ngx_module.so`:
 
 ```nginx
 load_module /opt/otel_ngx_module.so;
 ```
 
-Testing locally
----------------
+## Build
 
-First, run the jaeger all-in-one-image, which will collect traces:
+Upstream sources are **git submodules** under `vendor/`:
+
+- `vendor/grpc` @ `v1.49.2` (recursive)
+- `vendor/opentelemetry-cpp` @ `v1.8.1` (recursive)
+- `vendor/opentelemetry-cpp-contrib` @ `webserver/v1.1.0`
+
+```bash
+git submodule update --init --recursive
+./scripts/refresh-vendor.sh   # bump pins + regenerate rpms.lock.yaml
+./scripts/build-local.sh      # submodule sync + podman/docker build
+```
+
+See `vendor/VERSIONS.md` for pinned refs.
+
+## Testing locally
+
+Run Jaeger:
 
 ```shell
 podman run --rm --name jaeger \
@@ -33,28 +46,21 @@ podman run --rm --name jaeger \
   jaegertracing/all-in-one:1.60
 ```
 
-Build the image:
+Build and run:
 
 ```shell
-podman build . -t nginx-otel
-```
-
-Run the built nginx container:
-
-```shell
+./scripts/build-local.sh
 podman run \
     --network=host \
     -e OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
     -v $(pwd)/example:/etc/nginx:z \
     --rm -ti \
-    nginx-otel \
+    nginx-otel:local \
     /bin/bash -c "nginx -g 'daemon off;'"
 ```
-
-Hit the nginx deployment:
 
 ```shell
 curl http://localhost:8000/
 ```
 
-Finally view the trace in the [local jaeger UI](http://localhost:16686)
+Traces: [Jaeger UI](http://localhost:16686)

@@ -1,9 +1,25 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "tekton": {
-      "enabled": true,
-      "automerge": true,
-      "schedule": ["* * * * *"]
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "tekton": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": ["* * * * *"]
+  },
+  "ignoreDeps": [
+    "grpc",
+    "opentelemetry-cpp",
+    "opentelemetry-cpp-contrib"
+  ],
+  "packageRules": [
+    {
+      "description": "Do not open MintMaker PRs for RPM lockfile (managed via scripts/refresh-vendor.sh).",
+      "matchManagers": ["rpm"],
+      "enabled": false
+    },
+    {
+      "description": "Do not open MintMaker PRs for git submodule pins (managed via scripts/refresh-vendor.sh).",
+      "matchManagers": ["git-submodules"],
+      "enabled": false
     }
-  }
-  
+  ]
+}
