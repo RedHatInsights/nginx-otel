@@ -102,12 +102,14 @@ spec:
                 local result="$1"
                 local failures="$2"
                 local successes="$3"
+                # Integration Service schema requires: result, timestamp,
+                # failures, successes, warnings.
                 jq -n \
                   --arg result "${result}" \
                   --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
                   --argjson failures "${failures}" \
                   --argjson successes "${successes}" \
-                  '{result: $result, timestamp: $ts, failures: $failures, successes: $successes}' \
+                  '{result: $result, timestamp: $ts, failures: $failures, successes: $successes, warnings: 0}' \
                   | tee "$(results.TEST_OUTPUT.path)"
               }
 

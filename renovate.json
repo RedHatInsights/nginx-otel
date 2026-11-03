@@ -1,5 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>konflux-ci/mintmaker-presets:refresh-rpm-lockfiles"],
   "tekton": {
     "enabled": true,
     "automerge": true,
@@ -20,6 +21,13 @@
       "description": "Do not open MintMaker PRs for git submodule pins (managed via scripts/refresh-vendor.sh).",
       "matchManagers": ["git-submodules"],
       "enabled": false
+    },
+    {
+      "description": "Do not maintain RPM lockfiles via MintMaker (managed via scripts/refresh-vendor.sh).",
+      "matchManagers": ["rpm-lockfile"],
+      "lockFileMaintenance": {
+        "enabled": false
+      }
     }
   ]
 }
