@@ -26,6 +26,22 @@ git submodule update --init --recursive
 
 See `vendor/VERSIONS.md` for pinned refs.
 
+## Integration test (OTLP)
+
+End-to-end check that the module loads, proxies a request, and exports a span to Jaeger:
+
+```bash
+./scripts/build-local.sh
+./scripts/integration-test.sh
+```
+
+Uses `testdata/integration/` (not the production-shaped `example/` config).
+
+On every Konflux pull-request / push snapshot, IntegrationTestScenario
+`nginx-otel-integration-test` (in `konflux-release-data`) runs
+`.tekton/integration-test-pipeline.yaml` against the image Konflux
+just built.
+
 ## Testing locally
 
 Run Jaeger:
