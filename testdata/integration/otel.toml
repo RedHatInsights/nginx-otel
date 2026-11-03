@@ -1,0 +1,14 @@
+exporter = "otlp"
+# simple = export each span immediately (better for CI than batch delay)
+processor = "simple"
+
+[exporters.otlp]
+host = "jaeger"
+port = 4317
+
+[service]
+name = "nginx-otel-integration-test"
+
+[sampler]
+name = "AlwaysOn"
+parent_based = false
