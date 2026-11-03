@@ -60,13 +60,13 @@ arches:
     name: glibc-devel
     evr: 2.34-283.el9_8
     sourcerpm: glibc-2.34-283.el9_8.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.61.1.el9_8.aarch64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.64.1.el9_8.aarch64.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
-    size: 2955061
-    checksum: sha256:40ddd229d41cbb7f645a1c1b152e5af87b1ef9c1fb96aecc2373c95a2dbc8ca2
+    size: 2959549
+    checksum: sha256:fa39d84dbba31b364d73e3716c360e7c3eccd7e84543a9f6fef4606f1ec25a9b
     name: kernel-headers
-    evr: 5.14.0-687.61.1.el9_8
-    sourcerpm: kernel-5.14.0-687.61.1.el9_8.src.rpm
+    evr: 5.14.0-687.64.1.el9_8
+    sourcerpm: kernel-5.14.0-687.64.1.el9_8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/l/libasan-11.5.0-14.el9.aarch64.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
     size: 409047
@@ -74,13 +74,13 @@ arches:
     name: libasan
     evr: 11.5.0-14.el9
     sourcerpm: gcc-11.5.0-14.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/l/libcurl-devel-7.76.1-40.el9_8.8.aarch64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/l/libcurl-devel-7.76.1-40.el9_8.9.aarch64.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
-    size: 1005906
-    checksum: sha256:d5671be263a5e03632ca33ff7854208150e7f9d23a09e4ebac02cc99502ffd78
+    size: 1006000
+    checksum: sha256:46af17a339e799d181c9042dc20433607d94c929ea0e83b30fff56af04289036
     name: libcurl-devel
-    evr: 7.76.1-40.el9_8.8
-    sourcerpm: curl-7.76.1-40.el9_8.8.src.rpm
+    evr: 7.76.1-40.el9_8.9
+    sourcerpm: curl-7.76.1-40.el9_8.9.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.aarch64.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
     size: 67120
@@ -179,6 +179,13 @@ arches:
     name: libatomic
     evr: 11.5.0-14.el9
     sourcerpm: gcc-11.5.0-14.el9.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/baseos/os/Packages/l/libcurl-minimal-7.76.1-40.el9_8.9.aarch64.rpm
+    repoid: ubi-9-for-aarch64-baseos-rpms
+    size: 233589
+    checksum: sha256:153826b4b7a92f8430045daf304d94f0755713661d16bf21869da8f11689b29b
+    name: libcurl-minimal
+    evr: 7.76.1-40.el9_8.9
+    sourcerpm: curl-7.76.1-40.el9_8.9.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/baseos/os/Packages/l/libpkgconf-1.7.3-10.el9.aarch64.rpm
     repoid: ubi-9-for-aarch64-baseos-rpms
     size: 38310
@@ -288,20 +295,20 @@ arches:
     name: glibc-headers
     evr: 2.34-283.el9_8
     sourcerpm: glibc-2.34-283.el9_8.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.61.1.el9_8.x86_64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.64.1.el9_8.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 2994353
-    checksum: sha256:e033c43830512e57b795bb85c0bfdc5a250cde81cb72c2205998643617c27885
+    size: 2998841
+    checksum: sha256:63e8c2f98fdd0ed70e30d9037e7262925730013dcd52b46d7f7e10c428ac7ed3
     name: kernel-headers
-    evr: 5.14.0-687.61.1.el9_8
-    sourcerpm: kernel-5.14.0-687.61.1.el9_8.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libcurl-devel-7.76.1-40.el9_8.8.x86_64.rpm
+    evr: 5.14.0-687.64.1.el9_8
+    sourcerpm: kernel-5.14.0-687.64.1.el9_8.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libcurl-devel-7.76.1-40.el9_8.9.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 1006008
-    checksum: sha256:9d7cc623ce3a82f2ef19aef3c842a36599aa88164f0efb7b1d4bf6313328ab39
+    size: 1006002
+    checksum: sha256:74f83861240bd6f751dacbb75ae5210685c37f16eeabeb123e2358bb76d08964
     name: libcurl-devel
-    evr: 7.76.1-40.el9_8.8
-    sourcerpm: curl-7.76.1-40.el9_8.8.src.rpm
+    evr: 7.76.1-40.el9_8.9
+    sourcerpm: curl-7.76.1-40.el9_8.9.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
     size: 66075
@@ -386,6 +393,13 @@ arches:
     name: elfutils-debuginfod-client
     evr: 0.194-1.el9
     sourcerpm: elfutils-0.194-1.el9.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libcurl-minimal-7.76.1-40.el9_8.9.x86_64.rpm
+    repoid: ubi-9-for-x86_64-baseos-rpms
+    size: 237787
+    checksum: sha256:f08df756c7edcebcc9313bcaa3484763a2411ab56000c250646ba58b7958ae4e
+    name: libcurl-minimal
+    evr: 7.76.1-40.el9_8.9
+    sourcerpm: curl-7.76.1-40.el9_8.9.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libpkgconf-1.7.3-10.el9.x86_64.rpm
     repoid: ubi-9-for-x86_64-baseos-rpms
     size: 38387
