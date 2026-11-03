@@ -4,8 +4,9 @@ metadata:
   name: nginx-otel-integration-test
 spec:
   description: >
-    Integration-test the nginx-otel image from a Konflux SNAPSHOT: load the OTEL
-    module, proxy a request, and verify a span is exported to Jaeger (OTLP).
+    Integration-test the nginx-otel SNAPSHOT image with Tekton sidecars only
+    (Jaeger + httpd + nginx on 127.0.0.1). Does not call the Kubernetes /
+    OpenShift API — no kubectl/oc.
   params:
     - name: SNAPSHOT
       description: Konflux Snapshot JSON (injected by Integration Service)
@@ -14,8 +15,12 @@ spec:
       description: Component name inside the Snapshot
       type: string
       default: nginx-otel
+  results:
+    - name: TEST_OUTPUT
+      description: Concise integration-test result for Integration Service
+      value: $(tasks.otel-it.results.TEST_OUTPUT)
   tasks:
-    - name: otel-it
+    - name: extract-image
       params:
         - name: SNAPSHOT
           value: $(params.SNAPSHOT)
@@ -28,11 +33,11 @@ spec:
           - name: COMPONENT_NAME
             type: string
         results:
-          - name: TEST_OUTPUT
-            description: Concise integration-test result for Integration Service
+          - name: IMAGE
+            description: containerImage from the Snapshot
         steps:
-          - name: run-integration-test
-            image: quay.io/konflux-ci/konflux-test:latest
+          - name: extract
+            image: registry.access.redhat.com/ubi9/ubi-minimal:latest
             env:
               - name: SNAPSHOT
                 value: $(params.SNAPSHOT)
@@ -41,21 +46,69 @@ spec:
             script: |
               #!/usr/bin/env bash
               set -euo pipefail
+              if ! command -v jq >/dev/null; then
+                # ubi-minimal already has curl-minimal; only install jq.
+                if command -v microdnf >/dev/null; then microdnf -y install jq >/dev/null
+                elif command -v dnf >/dev/null; then dnf -y install jq >/dev/null
+                else echo "jq missing" >&2; exit 1; fi
+              fi
+              IMAGE="$(jq -r --arg n "${COMPONENT_NAME}" \
+                '.components[] | select(.name == $n) | .containerImage // empty' <<<"${SNAPSHOT}")"
+              if [[ -z "${IMAGE}" || "${IMAGE}" == "null" ]]; then
+                IMAGE="$(jq -r '.components[0].containerImage // empty' <<<"${SNAPSHOT}")"
+              fi
+              [[ -n "${IMAGE}" && "${IMAGE}" != "null" ]] || { echo "no containerImage in SNAPSHOT" >&2; exit 1; }
+              echo "Using image: ${IMAGE}"
+              printf '%s' "${IMAGE}" > "$(results.IMAGE.path)"
+
+    - name: otel-it
+      runAfter:
+        - extract-image
+      taskSpec:
+        results:
+          - name: TEST_OUTPUT
+            description: Concise integration-test result for Integration Service
+        sidecars:
+          - name: jaeger
+            image: docker.io/jaegertracing/all-in-one:1.60
+            env:
+              - name: COLLECTOR_OTLP_ENABLED
+                value: "true"
+          - name: backend
+            image: docker.io/library/httpd:2.4-alpine
+          - name: nginx
+            image: $(tasks.extract-image.results.IMAGE)
+            imagePullPolicy: Always
+            env:
+              - name: OTEL_B64
+                value: "ZXhwb3J0ZXIgPSAib3RscCIKcHJvY2Vzc29yID0gInNpbXBsZSIKW2V4cG9ydGVycy5vdGxwXQpob3N0ID0gIjEyNy4wLjAuMSIKcG9ydCA9IDQzMTcKW3NlcnZpY2VdCm5hbWUgPSAibmdpbngtb3RlbC1pdCIKW3NhbXBsZXJdCm5hbWUgPSAiQWx3YXlzT24iCnBhcmVudF9iYXNlZCA9IGZhbHNlCg=="
+              - name: NGINX_B64
+                value: "bG9hZF9tb2R1bGUgL29wdC9vdGVsX25neF9tb2R1bGUuc287CnBpZCAvdG1wL25naW54LnBpZDsKZXZlbnRzIHt9Cmh0dHAgewogIG9wZW50ZWxlbWV0cnlfY29uZmlnIC90bXAvb3RlbC50b21sOwogIGFjY2Vzc19sb2cgL2Rldi9zdGRvdXQ7CiAgZXJyb3JfbG9nIHN0ZGVyciBpbmZvOwogIGNsaWVudF9ib2R5X3RlbXBfcGF0aCAvdG1wL2NsaWVudF90ZW1wOwogIHByb3h5X3RlbXBfcGF0aCAvdG1wL3Byb3h5X3RlbXA7CiAgZmFzdGNnaV90ZW1wX3BhdGggL3RtcC9mYXN0Y2dpX3RlbXA7CiAgdXdzZ2lfdGVtcF9wYXRoIC90bXAvdXdzZ2lfdGVtcDsKICBzY2dpX3RlbXBfcGF0aCAvdG1wL3NjZ2lfdGVtcDsKICB1cHN0cmVhbSBpbnRlZ3JhdGlvbi1iYWNrZW5kIHsgc2VydmVyIDEyNy4wLjAuMTo4MDsgfQogIHNlcnZlciB7CiAgICBsaXN0ZW4gODAwMDsKICAgIGxvY2F0aW9uID0gL2hlYWx0aHogewogICAgICBvcGVudGVsZW1ldHJ5IG9mZjsKICAgICAgYWNjZXNzX2xvZyBvZmY7CiAgICAgIHJldHVybiAyMDAgIm9rXG4iOwogICAgfQogICAgbG9jYXRpb24gLyB7CiAgICAgIG9wZW50ZWxlbWV0cnkgb247CiAgICAgIG9wZW50ZWxlbWV0cnlfb3BlcmF0aW9uX25hbWUgaW50ZWdyYXRpb25fcHJveHk7CiAgICAgIG9wZW50ZWxlbWV0cnlfcHJvcGFnYXRlOwogICAgICBhZGRfaGVhZGVyIFRyYWNlLUlkICRvcGVudGVsZW1ldHJ5X3RyYWNlX2lkIGFsd2F5czsKICAgICAgcHJveHlfcGFzcyBodHRwOi8vaW50ZWdyYXRpb24tYmFja2VuZC87CiAgICB9CiAgfQp9Cg=="
+            command: ["/bin/sh", "-c"]
+            args:
+              # Tekton sidecars often use a minimal PATH without /usr/sbin.
+              - >-
+                printf '%s' "$OTEL_B64" | base64 -d > /tmp/otel.toml
+                && printf '%s' "$NGINX_B64" | base64 -d > /tmp/nginx.conf
+                && exec /usr/sbin/nginx -c /tmp/nginx.conf -g 'daemon off;'
+        steps:
+          - name: run-integration-test
+            image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
 
               write_result() {
                 local result="$1"
                 local failures="$2"
                 local successes="$3"
-                python3 -c "
-              import json, pathlib, datetime
-              pathlib.Path('$(results.TEST_OUTPUT.path)').write_text(json.dumps({
-                'result': '$result',
-                'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                'failures': int('$failures'),
-                'successes': int('$successes'),
-              }) + chr(10))
-              print(pathlib.Path('$(results.TEST_OUTPUT.path)').read_text(), end='')
-              "
+                jq -n \
+                  --arg result "${result}" \
+                  --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                  --argjson failures "${failures}" \
+                  --argjson successes "${successes}" \
+                  '{result: $result, timestamp: $ts, failures: $failures, successes: $successes}' \
+                  | tee "$(results.TEST_OUTPUT.path)"
               }
 
               fail() {
@@ -68,164 +121,35 @@ spec:
                 write_result SUCCESS 0 1
               }
 
-              command -v jq >/dev/null || fail "jq missing in task image"
-              command -v kubectl >/dev/null || fail "kubectl missing in task image"
-              command -v python3 >/dev/null || fail "python3 missing in task image"
-
-              IMAGE="$(jq -r --arg n "${COMPONENT_NAME}" \
-                '.components[] | select(.name == $n) | .containerImage // empty' <<<"${SNAPSHOT}")"
-              if [[ -z "${IMAGE}" || "${IMAGE}" == "null" ]]; then
-                IMAGE="$(jq -r '.components[0].containerImage // empty' <<<"${SNAPSHOT}")"
+              # ubi-minimal ships curl-minimal (/usr/bin/curl). Do NOT install
+              # the curl RPM — it conflicts with curl-minimal.
+              command -v curl >/dev/null || fail "curl missing (expected curl-minimal on ubi-minimal)"
+              if ! command -v jq >/dev/null; then
+                if command -v microdnf >/dev/null; then
+                  microdnf -y install jq >/dev/null
+                elif command -v dnf >/dev/null; then
+                  dnf -y install jq >/dev/null
+                else
+                  fail "jq missing and no package manager"
+                fi
               fi
-              [[ -n "${IMAGE}" && "${IMAGE}" != "null" ]] || fail "no containerImage in SNAPSHOT"
-              echo "Using image: ${IMAGE}"
-
-              SUFFIX="$(echo "s${RANDOM}$(date +%s)" | tr -cd 'a-z0-9' | cut -c1-20)"
-              NS="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"
-              JAEGER="otel-j-${SUFFIX}"
-              BACKEND="otel-b-${SUFFIX}"
-              NGINX="otel-n-${SUFFIX}"
-              CM="otel-c-${SUFFIX}"
-              SVC_J="otel-sj-${SUFFIX}"
-              SVC_B="otel-sb-${SUFFIX}"
-              SVC_N="otel-sn-${SUFFIX}"
-
-              cleanup() {
-                set +e
-                kubectl -n "${NS}" delete pod,svc,configmap -l "nginx-otel-it=${SUFFIX}" \
-                  --wait=false --ignore-not-found >/dev/null 2>&1
-              }
-              trap cleanup EXIT
-
-              WORK="$(mktemp -d)"
-
-              cat >"${WORK}/nginx.conf" <<EOF
-              load_module /opt/otel_ngx_module.so;
-              events {}
-              http {
-                opentelemetry_config /etc/nginx/otel.toml;
-                access_log /dev/stdout;
-                error_log stderr info;
-                upstream integration-backend { server ${SVC_B}:80; }
-                server {
-                  listen 8000;
-                  location = /healthz {
-                    opentelemetry off;
-                    access_log off;
-                    return 200 "ok\\n";
-                  }
-                  location / {
-                    opentelemetry on;
-                    opentelemetry_operation_name integration_proxy;
-                    opentelemetry_propagate;
-                    add_header Trace-Id \$opentelemetry_trace_id always;
-                    proxy_pass http://integration-backend/;
-                  }
-                }
-              }
-              EOF
-
-              cat >"${WORK}/otel.toml" <<EOF
-              exporter = "otlp"
-              processor = "simple"
-              [exporters.otlp]
-              host = "${SVC_J}"
-              port = 4317
-              [service]
-              name = "nginx-otel-it"
-              [sampler]
-              name = "AlwaysOn"
-              parent_based = false
-              EOF
-
-              kubectl -n "${NS}" create configmap "${CM}" \
-                --from-file=nginx.conf="${WORK}/nginx.conf" \
-                --from-file=otel.toml="${WORK}/otel.toml"
-              kubectl -n "${NS}" label configmap "${CM}" "nginx-otel-it=${SUFFIX}"
-
-              kubectl -n "${NS}" create service clusterip "${SVC_J}" --tcp=4317:4317 --tcp=16686:16686
-              kubectl -n "${NS}" label svc "${SVC_J}" "nginx-otel-it=${SUFFIX}"
-              kubectl -n "${NS}" patch svc "${SVC_J}" --type=merge -p "{\"spec\":{\"selector\":{\"app\":\"${JAEGER}\"}}}"
-
-              kubectl -n "${NS}" create service clusterip "${SVC_B}" --tcp=80:80
-              kubectl -n "${NS}" label svc "${SVC_B}" "nginx-otel-it=${SUFFIX}"
-              kubectl -n "${NS}" patch svc "${SVC_B}" --type=merge -p "{\"spec\":{\"selector\":{\"app\":\"${BACKEND}\"}}}"
-
-              kubectl -n "${NS}" create service clusterip "${SVC_N}" --tcp=8000:8000
-              kubectl -n "${NS}" label svc "${SVC_N}" "nginx-otel-it=${SUFFIX}"
-              kubectl -n "${NS}" patch svc "${SVC_N}" --type=merge -p "{\"spec\":{\"selector\":{\"app\":\"${NGINX}\"}}}"
-
-              kubectl -n "${NS}" run "${JAEGER}" \
-                --image=docker.io/jaegertracing/all-in-one:1.60 \
-                --labels="app=${JAEGER},nginx-otel-it=${SUFFIX}" \
-                --restart=Never \
-                --env=COLLECTOR_OTLP_ENABLED=true \
-                --port=4317 --port=16686
-
-              kubectl -n "${NS}" run "${BACKEND}" \
-                --image=docker.io/library/httpd:2.4-alpine \
-                --labels="app=${BACKEND},nginx-otel-it=${SUFFIX}" \
-                --restart=Never
-
-              cat >"${WORK}/nginx-pod.yaml" <<EOF
-              apiVersion: v1
-              kind: Pod
-              metadata:
-                name: ${NGINX}
-                labels:
-                  app: ${NGINX}
-                  nginx-otel-it: "${SUFFIX}"
-              spec:
-                restartPolicy: Never
-                containers:
-                  - name: nginx
-                    image: "${IMAGE}"
-                    imagePullPolicy: Always
-                    command: ["nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;"]
-                    ports:
-                      - containerPort: 8000
-                    volumeMounts:
-                      - name: conf
-                        mountPath: /etc/nginx/nginx.conf
-                        subPath: nginx.conf
-                      - name: conf
-                        mountPath: /etc/nginx/otel.toml
-                        subPath: otel.toml
-                volumes:
-                  - name: conf
-                    configMap:
-                      name: ${CM}
-              EOF
-              kubectl -n "${NS}" apply -f "${WORK}/nginx-pod.yaml"
-
-              echo "==> Waiting for pods"
-              kubectl -n "${NS}" wait --for=condition=Ready "pod/${JAEGER}" --timeout=180s
-              kubectl -n "${NS}" wait --for=condition=Ready "pod/${BACKEND}" --timeout=180s
-              kubectl -n "${NS}" wait --for=condition=Ready "pod/${NGINX}" --timeout=180s
-
-              curl_svc() {
-                local url="$1"; shift
-                kubectl -n "${NS}" run "otel-curl-${SUFFIX}-${RANDOM}" --rm -i --restart=Never \
-                  --image=docker.io/curlimages/curl:8.5.0 \
-                  --labels="nginx-otel-it=${SUFFIX}" \
-                  --quiet -- curl "$@" "${url}"
-              }
+              echo "Testing SNAPSHOT image via Tekton sidecars (localhost; no cluster API)"
 
               echo "==> healthz"
               out=""
-              for _ in $(seq 1 30); do
-                out="$(curl_svc "http://${SVC_N}:8000/healthz" -sf || true)"
+              for _ in $(seq 1 60); do
+                out="$(curl -sf "http://127.0.0.1:8000/healthz" 2>/dev/null || true)"
                 [[ "${out}" == ok* ]] && break
                 sleep 2
               done
-              [[ "${out}" == ok* ]] || { kubectl -n "${NS}" logs "${NGINX}" || true; fail "healthz: ${out}"; }
+              [[ "${out}" == ok* ]] || fail "healthz: ${out}"
               echo "healthz ok"
 
               echo "==> proxied /"
-              headers="$(curl_svc "http://${SVC_N}:8000/" -sD - -o /dev/null || true)"
+              headers="$(curl -sD - -o /dev/null "http://127.0.0.1:8000/" || true)"
               echo "${headers}" | head -20
               echo "${headers}" | grep -qiE "Trace-Id:[[:space:]]*[0-9a-fA-F]{16,}" \
-                || { kubectl -n "${NS}" logs "${NGINX}" || true; fail "missing Trace-Id header"; }
+                || fail "missing Trace-Id header"
               TRACE_ID="$(echo "${headers}" | grep -i "^Trace-Id:" | head -1 | sed "s/.*:[[:space:]]*//" | tr -d "\r")"
               TID_LC="$(echo "${TRACE_ID}" | tr "A-F" "a-f")"
               echo "Trace-Id=${TRACE_ID}"
@@ -233,9 +157,9 @@ spec:
               echo "==> Jaeger"
               found=0
               for _ in $(seq 1 45); do
-                services="$(curl_svc "http://${SVC_J}:16686/api/services" -sf || true)"
+                services="$(curl -sf "http://127.0.0.1:16686/api/services" 2>/dev/null || true)"
                 if echo "${services}" | grep -q nginx-otel-it; then
-                  traces="$(curl_svc "http://${SVC_J}:16686/api/traces?service=nginx-otel-it&limit=10" -sf || true)"
+                  traces="$(curl -sf "http://127.0.0.1:16686/api/traces?service=nginx-otel-it&limit=10" 2>/dev/null || true)"
                   if echo "${traces}" | grep -qi "${TID_LC}" || echo "${traces}" | grep -q integration_proxy; then
                     found=1
                     break
@@ -243,10 +167,6 @@ spec:
                 fi
                 sleep 2
               done
-              [[ "${found}" -eq 1 ]] || {
-                kubectl -n "${NS}" logs "${NGINX}" || true
-                kubectl -n "${NS}" logs "${JAEGER}" --tail=80 || true
-                fail "no OTLP trace in Jaeger"
-              }
+              [[ "${found}" -eq 1 ]] || fail "no OTLP trace in Jaeger"
 
-              pass "integration test against ${IMAGE}"
+              pass "integration test (sidecar localhost)"
